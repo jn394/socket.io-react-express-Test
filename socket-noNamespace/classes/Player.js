@@ -1,8 +1,11 @@
 class Player {
-    constructor(socketId, playerName, score){
+    constructor(socketId, playerName, hand, score) {
         this.socketId = socketId;
         this.playerName = playerName;
+        this.hand = hand;
         this.score = score;
+        this.playerTotal = 0;
+        this.playerTotalAlt = 0;
     }
 }
 

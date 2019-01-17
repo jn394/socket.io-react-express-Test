@@ -52,20 +52,88 @@ io.on('connection', socket => {
       return socket.emit('LOGIN_ERROR', 'Name is required.')
     }
 
-    player = new Player(socket.id, playerName, 0);
-
-    players.push(player);
-
-    socket.emit('LOGIN_SUCCESS', player);
-
     socket.join('Room 1', () => {
       let rooms = Object.keys(socket.rooms);
       console.log(rooms); // [ <socket.id>, 'room 237' ]    
       io.to('Room 1').emit('ROOM_JOIN_SUCCESS', `${playerName} has joined the room`); // broadcast to everyone in the room
     });
 
-    io.to('Room 1').emit('Number of Players', players.length)
+    if (playerName === '/table') {
+      console.log(playerName);
+      socket.emit('LOGIN_SUCCESS', {
+        table: true,
+        playerName: playerName
+      });
+    }
+    else {
+
+      player = new Player(socket.id, playerName, [], 0);
+
+      players.push(player);
+
+      socket.emit('LOGIN_SUCCESS', player);
+
+      console.log(players);
+
+      io.to('Room 1').emit('Number of Players', {
+        numberOfPlayers: players.length - 1,
+        players: players
+      }) // -1 to account for the table 
+    }
   })
+
+  // Game Logic
+  // Deal BTN
+  socket.on('Initial Hand', data => {
+    console.log('Inital Hand: ' + data);
+    console.log('Players Array: '+ players)
+
+    players.map(player => {
+      if (player.socketId === data.playerID) {
+        socket.emit('Initial Hand 2', {
+          hand: data.playerCards
+        })
+        console.log(player);    
+
+        player.hand = data.playerCards;
+
+        io.to('Room 1').emit('Dealers Hand', {
+          socketId: data.playerID,
+          playerName: player.playerName,
+          playerInGameHand: player.hand,
+          score: player.score,
+          dealerCards: data.dealerCards
+        })
+      }
+    })
+  })
+
+  // Hit BTN
+  socket.on('Hit Clicked', data =>{
+    console.log(data);
+    
+    players.map(player => {
+      if (player.socketId === data.playerID) {
+        socket.emit('Add Hit Card', {
+          hand: data.playerCards,
+          playerID: data.playerID
+        })
+        console.log(player);    
+
+        player.hand = data.playerCards;
+
+        io.to('Room 1').emit('New Hit Hand', {
+          socketId: data.playerID,
+          playerName: player.playerName,
+          playerInGameHand: player.hand,
+          score: player.score
+        })
+      }
+    })
+  })
+
+
+
 
   socket.on('disconnect', function () {
     console.log('SocketID: ' + socket.id + ' disconnected');

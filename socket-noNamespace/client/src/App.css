@@ -137,3 +137,7 @@ button.betDisabled {
   border-radius: 25px;
   opacity: 0.95;
 }
+
+.login {
+  background-color: teal;
+}

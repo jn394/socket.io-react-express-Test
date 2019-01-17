@@ -17,14 +17,16 @@ function Table(props) {
 
             <div className='row'>
                 {props.playersInGame.map(player => (
-                    
-                    <CardList
-                        cardDisplay={`${player.playerName}:`}
-                        cardTotal={player.playerTotal}
-                        cardTotalAlt={player.playerTotalAlt}
-                        cards={player.hand}
-                    />
+                    <div>
+                        <h4>{player.gameMsg}</h4>
 
+                        <CardList
+                            cardDisplay={`${player.playerName}:`}
+                            cardTotal={player.playerTotal}
+                            cardTotalAlt={player.playerTotalAlt}
+                            cards={player.hand}
+                        />
+                    </div>
                 ))}
             </div>
 

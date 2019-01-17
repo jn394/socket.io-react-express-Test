@@ -6,6 +6,7 @@ class Player {
         this.score = score;
         this.playerTotal = 0;
         this.playerTotalAlt = 0;
+        this.gameMsg = "";
     }
 }
 

@@ -72,7 +72,7 @@ const Controls = props => {
           </button>
           <button
             className={"btn " + buttonVisible(false)}
-            onClick={() => props.stayClicked()}
+            onClick={() => props.stayClicked(props.playerID)}
           >
             Stay
           </button>

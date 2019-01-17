@@ -86,14 +86,14 @@ io.on('connection', socket => {
   // Deal BTN
   socket.on('Initial Hand', data => {
     console.log('Inital Hand: ' + data);
-    console.log('Players Array: '+ players)
+    console.log('Players Array: ' + players)
 
     players.map(player => {
       if (player.socketId === data.playerID) {
         socket.emit('Initial Hand 2', {
           hand: data.playerCards
         })
-        console.log(player);    
+        console.log(player);
 
         player.hand = data.playerCards;
 
@@ -109,16 +109,16 @@ io.on('connection', socket => {
   })
 
   // Hit BTN
-  socket.on('Hit Clicked', data =>{
+  socket.on('Hit Clicked', data => {
     console.log(data);
-    
+
     players.map(player => {
       if (player.socketId === data.playerID) {
         socket.emit('Add Hit Card', {
           hand: data.playerCards,
           playerID: data.playerID
         })
-        console.log(player);    
+        console.log(player);
 
         player.hand = data.playerCards;
 
@@ -132,8 +132,28 @@ io.on('connection', socket => {
     })
   })
 
+  // When player busts
+  socket.on('Player has busted', data => {
+    console.log('Player has busted!!!!!!')
+    console.log(data);
+    io.to('Room 1').emit('A player has bust', data)
+  })
 
+  // After STAY is clicked
+  socket.on('Adding to dealer', data => {
+    console.log('ADDING TO DEALER')
+    console.log(data);
+    io.to('Room 1').emit('Dealers New Hand', {
+      dealerCards: data.dealerCards,
+      status: data.status,
+      playerID: data.playerID
+    })
+  })
 
+  // // Calculating Chips
+  // socket.on('Calculating Chips', data => {
+  //   io.to('Room 1').emit('Updating Chips', data)
+  // })
 
   socket.on('disconnect', function () {
     console.log('SocketID: ' + socket.id + ' disconnected');

@@ -11,6 +11,7 @@ import PlayerScreen from './components/playerScreen';
 class App extends Component {
 
   state = {
+    playerID: "",
     playerName: "",
     displayPlayerName: "",
     numberOfPlayers: 0,
@@ -57,7 +58,8 @@ class App extends Component {
         hand: data.playerInGameHand,
         score: data.score,
         playerTotal: 0,
-        playerTotalAlt: 0
+        playerTotalAlt: 0,
+        gameMsg: ""
       }
 
       console.log(this.state.playersInGame)
@@ -93,6 +95,9 @@ class App extends Component {
         playerName: data.playerName,
         hand: data.playerInGameHand,
         score: data.score,
+        playerTotal: 0,
+        playerTotalAlt: 0,
+        gameMsg: ""
       }
 
       console.log(this.state.playersInGame)
@@ -118,6 +123,41 @@ class App extends Component {
       })
     })
 
+    // When an player busts
+    this.socket.on('A player has bust', data => {
+      console.log(data.playerID)
+      console.log(data.status)
+      let newPlayersInGame = this.state.playersInGame
+
+      for (var i = 0; i < newPlayersInGame.length; i++) {
+        if (newPlayersInGame[i].socketId === data.playerID) {
+          newPlayersInGame[i].gameMsg = data.status;
+        }
+      }
+
+      this.setState({ playersInGame: newPlayersInGame });
+    })
+
+    // When stay is clicked and deal trys to win
+    this.socket.on('Dealers New Hand', data => {
+      let newPlayersInGame = this.state.playersInGame
+
+      for (var i = 0; i < newPlayersInGame.length; i++) {
+        if (newPlayersInGame[i].socketId === data.playerID) {
+          newPlayersInGame[i].gameMsg = data.status;
+        }
+      }
+      this.setState({
+        dealerCards: data.dealerCards,
+        playersInGame: newPlayersInGame
+      }, () => { this.calcCards() })
+
+    })
+
+    // // Calculating Chips
+    // this.socket.on('Updating Chips', data =>{
+      
+    // })
 
   }
 
@@ -130,6 +170,8 @@ class App extends Component {
         message: `SocketID: ${dataFromServer.socketid} has connected to server!`,
         socketid: dataFromServer.socketid
       });
+
+      this.setState({ playerID: this.socket.id })
 
     });
   }
@@ -236,16 +278,26 @@ class App extends Component {
       min,
       status = "";
 
-    for (var i = 0; i < this.state.playersInGame.length; i++) {
-      if (this.state.playersInGame[i].socketId === playerID) {
-        t1 = this.calcCardTotal(this.state.playersInGame[i].playerCards, false);
-        t2 = this.calcCardTotal(this.state.playersInGame[i].playerCards, true);
-      }
-    }
+    t1 = this.state.playerTotal;
+    t2 = this.state.playerTotalAlt;
+
+    console.log(t1)
+    console.log(t2)
 
     min = Math.min(t1, t2);
+
+    console.log(min)
+
     if (min > 21) {
       status = "Over 21 - You Lose!!!!";
+
+      // Message for the table
+      this.socket.emit('Player has busted', {
+        playerID: playerID,
+        value: min,
+        status: status
+      })
+
     }
 
     this.setState({
@@ -310,6 +362,7 @@ class App extends Component {
     })
 
     this.socket.on('Add Hit Card', data => {
+
       this.setState(
         prevState => ({
           playerCards: data.hand,
@@ -330,12 +383,12 @@ class App extends Component {
     t2 = this.calcCardTotal(dealerCards, true);
 
     if (Math.min(t1, t2) > 21) {
-      status = "Player Wins!!!";
+      status = "You Win!!!";
     } else if (
       (t1 <= 21 && t1 === playerTotal) ||
       (t2 <= 21 && t2 === playerTotal)
     ) {
-      status = "Push";
+      status = "Tie";
     } else if (
       (t1 <= 21 && t1 > playerTotal) ||
       (t2 <= 21 && t2 > playerTotal)
@@ -346,7 +399,7 @@ class App extends Component {
     return status;
   };
 
-  stayClicked = () => {
+  stayClicked = (playerID) => {
     //Draw dealer cards until value equals or is higher then user.
     let playerTotal = Math.max(
       this.state.playerTotal,
@@ -362,6 +415,13 @@ class App extends Component {
       do {
         this.drawCards(deck, dealerCards, 1);
         status = this.checkDealerStatus(dealerCards, playerTotal);
+
+        this.socket.emit('Adding to dealer', {
+          dealerCards: dealerCards,
+          status: status,
+          playerID: playerID
+        })
+
       } while (status === "");
     }
 
@@ -378,13 +438,18 @@ class App extends Component {
   resetGame = () => {
     let chips = this.state.chips;
     let bet = this.state.bet;
-    debugger;
+    // debugger;
     //Calculate chips
-    if (this.state.gameMsg === "Push - Tie with the Dealer.") {
+    if (this.state.gameMsg === "Tie") {
       chips = chips + bet;
     } else if (this.state.gameMsg === "You Win!!!") {
       chips = chips + bet * 2;
     }
+
+    // this.socket.emit('Calculating Chips', {
+    //   playerID: playerID,
+    //   chips: chips
+    // })
 
     this.setState({
       deck: [],
@@ -420,24 +485,26 @@ class App extends Component {
   render() {
     return (
       <div className="App">
-        <NameForm
-          value={this.state.playerName}
-          handleInputChange={this.handleInputChange}
-          joinBTN={this.joinBTN}
-        />
+        {/* This should be in the homepage/landing page as a modal */}
+        <div className='login'>
+          <NameForm
+            value={this.state.playerName}
+            handleInputChange={this.handleInputChange}
+            joinBTN={this.joinBTN}
+          />
 
-        <div>
-          Welcome: {this.state.displayPlayerName}
+          <div>
+            Welcome: {this.state.displayPlayerName}
+          </div>
+
+          <div>
+            Score: {this.state.score}
+          </div>
+
+          <div>
+            Number of Players: {this.state.numberOfPlayers}
+          </div>
         </div>
-
-        <div>
-          Score: {this.state.score}
-        </div>
-
-        <div>
-          Number of Players: {this.state.numberOfPlayers}
-        </div>
-
 
         {/* Ternary operator to show either hand or table */}
         {this.state.tableStatus ?
@@ -455,6 +522,9 @@ class App extends Component {
           />
           :
           <PlayerScreen
+            // For Game Message
+            gameMsg={this.state.gameMsg}
+            resetGame={this.resetGame}
 
             //For Cardlist
             playerTotal={this.state.playerTotal}
@@ -470,6 +540,7 @@ class App extends Component {
             hitClicked={this.hitClicked}
             stayClicked={this.stayClicked}
             clearBet={this.clearBet}
+            playerID={this.state.playerID}
           />
         }
 
